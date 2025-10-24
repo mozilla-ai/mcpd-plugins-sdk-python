@@ -6,6 +6,7 @@ This example demonstrates how to reject requests that don't meet security requir
 import asyncio
 import logging
 import os
+import sys
 
 from google.protobuf.empty_pb2 import Empty
 from grpc import ServicerContext
@@ -77,4 +78,4 @@ class AuthPlugin(BasePlugin):
 
 
 if __name__ == "__main__":
-    asyncio.run(serve(AuthPlugin()))
+    asyncio.run(serve(AuthPlugin(), sys.argv))

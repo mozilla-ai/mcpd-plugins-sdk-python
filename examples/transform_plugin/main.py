@@ -7,6 +7,7 @@ modifying JSON payloads or adding default fields.
 import asyncio
 import json
 import logging
+import sys
 
 from google.protobuf.empty_pb2 import Empty
 from grpc import ServicerContext
@@ -99,4 +100,4 @@ class TransformPlugin(BasePlugin):
 
 
 if __name__ == "__main__":
-    asyncio.run(serve(TransformPlugin()))
+    asyncio.run(serve(TransformPlugin(), sys.argv))

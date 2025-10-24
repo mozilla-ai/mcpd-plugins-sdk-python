@@ -5,6 +5,7 @@ This example demonstrates stateful request processing and rate limiting.
 
 import asyncio
 import logging
+import sys
 import time
 from collections import defaultdict
 
@@ -104,4 +105,4 @@ class RateLimitPlugin(BasePlugin):
 
 
 if __name__ == "__main__":
-    asyncio.run(serve(RateLimitPlugin(requests_per_minute=60)))
+    asyncio.run(serve(RateLimitPlugin(requests_per_minute=60), sys.argv))

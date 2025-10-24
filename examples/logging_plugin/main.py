@@ -6,6 +6,7 @@ for observability purposes.
 
 import asyncio
 import logging
+import sys
 
 from google.protobuf.empty_pb2 import Empty
 from grpc import ServicerContext
@@ -90,4 +91,4 @@ class LoggingPlugin(BasePlugin):
 
 
 if __name__ == "__main__":
-    asyncio.run(serve(LoggingPlugin()))
+    asyncio.run(serve(LoggingPlugin(), sys.argv))

@@ -28,6 +28,24 @@ The plugin uses the `AUTH_TOKEN` environment variable to set the expected token 
 
 - Request validation and rejection
 - Environment variable configuration
-- Returning error responses with `continue_=False`
+- Returning error responses with `**{"continue": False}`
 - Setting HTTP status codes and response bodies
 - Using class initialization for plugin state
+
+## Building
+
+See [BUILD.md](../../BUILD.md) for complete instructions on building standalone executables.
+
+Quick build:
+
+```bash
+# Development build with PyInstaller (fast)
+make build-plugin PLUGIN=examples/auth_plugin
+
+# Production build with Nuitka (optimized)
+make build-plugin-prod PLUGIN=examples/auth_plugin
+
+# Run the executable with custom token
+export AUTH_TOKEN="my-secret-token"
+./dist/auth_plugin
+```

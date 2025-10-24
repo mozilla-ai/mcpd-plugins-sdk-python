@@ -6,6 +6,7 @@ It adds a custom header to all incoming requests.
 
 import asyncio
 import logging
+import sys
 
 from google.protobuf.empty_pb2 import Empty
 from grpc import ServicerContext
@@ -63,4 +64,4 @@ class SimplePlugin(BasePlugin):
 
 
 if __name__ == "__main__":
-    asyncio.run(serve(SimplePlugin()))
+    asyncio.run(serve(SimplePlugin(), sys.argv))

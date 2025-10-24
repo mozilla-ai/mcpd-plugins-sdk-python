@@ -50,3 +50,20 @@ uv run python main.py
 - Error handling (returning 400 for invalid JSON)
 - Updating Content-Length header after transformation
 - Copying and modifying request fields
+
+## Building
+
+See [BUILD.md](../../BUILD.md) for complete instructions on building standalone executables.
+
+Quick build:
+
+```bash
+# Development build with PyInstaller (fast)
+make build-plugin PLUGIN=examples/transform_plugin
+
+# Production build with Nuitka (optimized)
+make build-plugin-prod PLUGIN=examples/transform_plugin
+
+# Run the executable
+./dist/transform_plugin
+```

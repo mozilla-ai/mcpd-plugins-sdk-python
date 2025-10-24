@@ -24,3 +24,20 @@ uv run python main.py
 - Structured logging for observability
 - Handling sensitive data (header redaction)
 - Pass-through behavior while gathering telemetry
+
+## Building
+
+See [BUILD.md](../../BUILD.md) for complete instructions on building standalone executables.
+
+Quick build:
+
+```bash
+# Development build with PyInstaller (fast)
+make build-plugin PLUGIN=examples/logging_plugin
+
+# Production build with Nuitka (optimized)
+make build-plugin-prod PLUGIN=examples/logging_plugin
+
+# Run the executable
+./dist/logging_plugin
+```

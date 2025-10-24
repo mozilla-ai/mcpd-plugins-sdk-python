@@ -6,7 +6,7 @@ A minimal plugin that demonstrates basic functionality by adding a custom header
 
 - Implements the `HandleRequest` method to intercept incoming HTTP requests
 - Adds a custom header `X-Simple-Plugin: processed` to all requests
-- Passes the request through with `continue_=True`
+- Passes the request through with `**{"continue": True}`
 
 ## Running the example
 
@@ -25,3 +25,20 @@ The plugin will start on port 50051 (or the port specified in `PLUGIN_PORT` envi
 - Implementing `GetCapabilities()` to declare supported flows
 - Implementing `HandleRequest()` to process HTTP requests
 - Using the `serve()` helper to launch the gRPC server
+
+## Building
+
+See [BUILD.md](../../BUILD.md) for complete instructions on building standalone executables.
+
+Quick build:
+
+```bash
+# Development build with PyInstaller (fast)
+make build-plugin PLUGIN=examples/simple_plugin
+
+# Production build with Nuitka (optimized)
+make build-plugin-prod PLUGIN=examples/simple_plugin
+
+# Run the executable
+./dist/simple_plugin
+```

@@ -23,6 +23,22 @@ lint: ## Run pre-commit hooks on all files
 generate-protos: ensure-scripts-exec ## Download proto files and generate Python code
 	./scripts/generate_protos.sh
 
+.PHONY: build-plugin
+build-plugin: ensure-scripts-exec ## Build a plugin executable with PyInstaller (usage: make build-plugin PLUGIN=examples/simple_plugin)
+	@if [ -z "$(PLUGIN)" ]; then \
+		echo "Error: PLUGIN variable not set. Usage: make build-plugin PLUGIN=examples/simple_plugin"; \
+		exit 1; \
+	fi
+	./scripts/build_plugin.sh $(PLUGIN)
+
+.PHONY: build-plugin-prod
+build-plugin-prod: ensure-scripts-exec ## Build a plugin with Nuitka for production (usage: make build-plugin-prod PLUGIN=examples/simple_plugin)
+	@if [ -z "$(PLUGIN)" ]; then \
+		echo "Error: PLUGIN variable not set. Usage: make build-plugin-prod PLUGIN=examples/simple_plugin"; \
+		exit 1; \
+	fi
+	./scripts/build_plugin.sh $(PLUGIN) --nuitka
+
 .PHONY: clean
 clean: ## Clean generated files and caches
 	rm -rf tmp/

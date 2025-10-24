@@ -34,3 +34,20 @@ asyncio.run(serve(RateLimitPlugin(requests_per_minute=100)))
 - Calculating and returning `Retry-After` header
 - Per-client tracking using remote IP address
 - Request rejection with appropriate HTTP status codes
+
+## Building
+
+See [BUILD.md](../../BUILD.md) for complete instructions on building standalone executables.
+
+Quick build:
+
+```bash
+# Development build with PyInstaller (fast)
+make build-plugin PLUGIN=examples/rate_limit_plugin
+
+# Production build with Nuitka (optimized)
+make build-plugin-prod PLUGIN=examples/rate_limit_plugin
+
+# Run the executable
+./dist/rate_limit_plugin
+```

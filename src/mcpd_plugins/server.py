@@ -1,5 +1,6 @@
 """Server helper functions for launching gRPC plugin servers."""
 
+import argparse
 import asyncio
 import logging
 import os
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 async def serve(
     plugin: BasePlugin,
-    port: int | None = None,
+    args: list[str] | None = None,
     max_workers: int = 10,
     grace_period: float = 5.0,
 ) -> None:
@@ -25,9 +26,14 @@ async def serve(
     This is a convenience function that handles server setup, signal handling,
     and graceful shutdown. It runs until interrupted by SIGTERM or SIGINT.
 
+    When running under mcpd, the --address and --network flags are required and
+    passed by mcpd. For standalone testing, omit these flags and the server will
+    default to TCP on port 50051.
+
     Args:
         plugin: The plugin instance to serve (should extend BasePlugin).
-        port: Port to listen on. If None, uses PLUGIN_PORT env var or defaults to 50051.
+        args: Command-line arguments (typically sys.argv). If None, runs in standalone
+            mode on TCP port 50051. When provided by mcpd, expects --address and --network.
         max_workers: Maximum number of concurrent workers (default: 10).
         grace_period: Seconds to wait for graceful shutdown (default: 5.0).
 
@@ -37,6 +43,7 @@ async def serve(
     Example:
         ```python
         import asyncio
+        import sys
         from mcpd_plugins import BasePlugin, serve
 
         class MyPlugin(BasePlugin):
@@ -44,18 +51,62 @@ async def serve(
                 return Metadata(name="my-plugin", version="1.0.0")
 
         if __name__ == "__main__":
-            asyncio.run(serve(MyPlugin()))
+            # For mcpd: pass sys.argv to handle --address and --network
+            asyncio.run(serve(MyPlugin(), sys.argv))
+
+            # For standalone testing: omit args to use TCP :50051
+            # asyncio.run(serve(MyPlugin()))
         ```
     """
-    if port is None:
+    # Parse command-line arguments if provided.
+    if args is not None:
+        parser = argparse.ArgumentParser(description="Plugin server for mcpd")
+        parser.add_argument(
+            "--address",
+            type=str,
+            required=False,
+            help="gRPC address (socket path for unix, host:port for tcp)",
+        )
+        parser.add_argument(
+            "--network",
+            type=str,
+            default="unix",
+            choices=["unix", "tcp"],
+            help="Network type (unix or tcp)",
+        )
+        parsed_args = parser.parse_args(args[1:])  # Skip program name.
+
+        # Require --address when args are provided (mcpd mode).
+        if parsed_args.address is None:
+            raise ServerError(
+                "--address is required when running with command-line arguments. "
+                "For standalone testing, call serve() without args."
+            )
+
+        address = parsed_args.address
+        network = parsed_args.network
+    else:
+        # Standalone mode: use TCP with default port.
+        network = "tcp"
         port = int(os.getenv("PLUGIN_PORT", "50051"))
+        address = f"[::]:{port}"
+
+    # Format the listen address based on network type.
+    listen_addr = (
+        f"unix:///{address}"  # Three slashes for Unix sockets.
+        if network == "unix"
+        else address
+        if ":" in address
+        else f"[::]:{address}"
+    )
 
     server = aio.server()
     add_PluginServicer_to_server(plugin, server)
 
-    listen_addr = f"[::]:{port}"
     try:
-        server.add_insecure_port(listen_addr)
+        result = server.add_insecure_port(listen_addr)
+        if result == 0:
+            raise ServerError(f"Failed to bind to {listen_addr}")
     except Exception as e:
         raise ServerError(f"Failed to bind to {listen_addr}: {e}") from e
 
