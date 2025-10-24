@@ -1,0 +1,1 @@
+"""Logging plugin example."""
