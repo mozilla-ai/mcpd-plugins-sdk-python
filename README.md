@@ -116,6 +116,7 @@ When handling requests or responses, you can:
 The SDK includes five example plugins demonstrating common patterns:
 
 ### 1. Simple Plugin
+
 Adds a custom header to all requests.
 
 ```bash
@@ -124,6 +125,7 @@ uv run python main.py
 ```
 
 ### 2. Auth Plugin
+
 Validates Bearer token authentication and rejects unauthorized requests.
 
 ```bash
@@ -133,6 +135,7 @@ uv run python main.py
 ```
 
 ### 3. Logging Plugin
+
 Logs HTTP request and response details for observability.
 
 ```bash
@@ -141,6 +144,7 @@ uv run python main.py
 ```
 
 ### 4. Rate Limit Plugin
+
 Implements token bucket rate limiting per client IP.
 
 ```bash
@@ -149,6 +153,7 @@ uv run python main.py
 ```
 
 ### 5. Transform Plugin
+
 Transforms JSON request bodies by adding metadata fields.
 
 ```bash
@@ -214,16 +219,15 @@ class BasePlugin(PluginServicer):
     async def CheckHealth(self, request: Empty, context) -> Empty
     async def CheckReady(self, request: Empty, context) -> Empty
     async def HandleRequest(self, request: HTTPRequest, context) -> HTTPResponse
-    async def HandleResponse(self, request: HTTPResponse, context) -> HTTPResponse
+    async def HandleResponse(self, response: HTTPResponse, context) -> HTTPResponse
 ```
 
-### serve()
+### `serve()`
 
 ```python
 async def serve(
     plugin: BasePlugin,
     args: Optional[list[str]] = None,  # Command-line arguments (typically sys.argv)
-    max_workers: int = 10,
     grace_period: float = 5.0,
 ) -> None
 ```
@@ -231,7 +235,6 @@ async def serve(
 **Parameters:**
 - `plugin`: The plugin instance to serve
 - `args`: Command-line arguments. When provided (e.g., `sys.argv`), enables mcpd compatibility by parsing `--address` and `--network` flags. When `None`, runs in standalone mode on TCP port 50051.
-- `max_workers`: Maximum number of concurrent gRPC workers
 - `grace_period`: Seconds to wait during graceful shutdown
 
 **Command-line flags** (when `args` is provided):

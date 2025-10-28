@@ -25,7 +25,7 @@ MANIFEST
 venv/
 ENV/
 env/
-.venv
+.venv/
 
 # IDE
 .vscode/
@@ -47,9 +47,6 @@ dmypy.json
 
 # Ruff
 .ruff_cache/
-
-# Distribution / packaging
-*.egg-info/
 
 # Proto source files (downloaded during build, not committed)
 tmp/

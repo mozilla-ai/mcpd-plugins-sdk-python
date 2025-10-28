@@ -12,6 +12,7 @@ LOCAL_BIN="${LOCAL_BIN:-$HOME/.local/bin}"
 
 # Ensure LOCAL_BIN exists and is on PATH
 mkdir -p "$LOCAL_BIN"
+INITIAL_PATH="$PATH"
 if [[ ":$PATH:" != *":$LOCAL_BIN:"* ]]; then
   export PATH="$LOCAL_BIN:$PATH"
 fi
@@ -47,7 +48,7 @@ echo "Installing pre-commit hooks"
 uv run pre-commit install
 
 # After detecting PATH lacked LOCAL_BIN…
-if [[ ":$PATH:" != *":$LOCAL_BIN:"* ]]; then
+if [[ ":$INITIAL_PATH:" != *":$LOCAL_BIN:"* ]]; then
   echo "Note: added $LOCAL_BIN to PATH for this session."
   echo "To make it permanent, add to your shell profile:"
   echo "  export PATH=\"$LOCAL_BIN:\$PATH\""

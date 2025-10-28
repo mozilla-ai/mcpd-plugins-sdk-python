@@ -9,7 +9,7 @@ import logging
 import sys
 
 from google.protobuf.empty_pb2 import Empty
-from grpc import ServicerContext
+from grpc.aio import ServicerContext
 
 from mcpd_plugins import BasePlugin, serve
 from mcpd_plugins.v1.plugins.plugin_pb2 import (
@@ -29,6 +29,7 @@ class SimplePlugin(BasePlugin):
 
     async def GetMetadata(self, request: Empty, context: ServicerContext) -> Metadata:
         """Return plugin metadata."""
+        _ = (request, context)
         return Metadata(
             name="simple-plugin",
             version="1.0.0",
@@ -37,27 +38,20 @@ class SimplePlugin(BasePlugin):
 
     async def GetCapabilities(self, request: Empty, context: ServicerContext) -> Capabilities:
         """Declare support for request flow."""
+        _ = (request, context)
         return Capabilities(flows=[FLOW_REQUEST])
 
     async def HandleRequest(self, request: HTTPRequest, context: ServicerContext) -> HTTPResponse:
         """Add a custom header to the request."""
-        logger.info(f"Processing request: {request.method} {request.url}")
+        _ = context
+        logger.info("Processing request: %s %s", request.method, request.url)
 
         # Create response with Continue=True to pass the request through.
         response = HTTPResponse(**{"continue": True})
 
-        # Copy original headers.
-        for key, value in request.headers.items():
-            response.modified_request.headers[key] = value
-
-        # Add custom header.
+        # Start from the original request, then mutate headers.
+        response.modified_request.CopyFrom(request)
         response.modified_request.headers["X-Simple-Plugin"] = "processed"
-
-        # Copy other request fields.
-        response.modified_request.method = request.method
-        response.modified_request.url = request.url
-        response.modified_request.path = request.path
-        response.modified_request.body = request.body
 
         logger.info("Added X-Simple-Plugin header")
         return response

@@ -1,11 +1,12 @@
-.PHONY: help
+.PHONY: all help
+all: help ## Default target
 help: ## Show this help message
 	@echo "Available targets:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: ensure-scripts-exec
 ensure-scripts-exec: ## Make scripts executable
-	chmod +x scripts/*
+	@if [ -d scripts ]; then chmod +x scripts/*.sh 2>/dev/null || true; fi
 
 .PHONY: setup
 setup: ensure-scripts-exec ## Setup development environment (installs uv and syncs dependencies)
@@ -39,12 +40,20 @@ build-plugin-prod: ensure-scripts-exec ## Build a plugin with Nuitka for product
 	fi
 	./scripts/build_plugin.sh $(PLUGIN) --nuitka
 
-.PHONY: clean
-clean: ## Clean generated files and caches
-	rm -rf tmp/
-	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
-	find . -type f -name "*.pyc" -delete
+.PHONY: clean clean-build clean-caches clean-pyc
+clean: clean-build clean-caches clean-pyc ## Clean generated files and caches
+
+.PHONY: clean-build
+clean-build: ## Clean build artifacts
+	rm -rf build/ dist/ tmp/
+	find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+
+.PHONY: clean-caches
+clean-caches: ## Clean cache directories
 	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
-	rm -rf build/ dist/
+	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+
+.PHONY: clean-pyc
+clean-pyc: ## Clean Python bytecode files
+	find . -type f -name "*.pyc" -delete

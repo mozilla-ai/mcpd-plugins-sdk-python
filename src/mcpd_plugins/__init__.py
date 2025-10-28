@@ -6,8 +6,14 @@ Plugins extend the BasePlugin class and override only the methods they need.
 Example:
     ```python
     import asyncio
+    import sys
     from mcpd_plugins import BasePlugin, serve
-    from mcpd_plugins.v1.plugins.plugin_pb2 import Capabilities, Flow, Metadata
+    from mcpd_plugins.v1.plugins.plugin_pb2 import (
+        FLOW_REQUEST,
+        Capabilities,
+        HTTPResponse,
+        Metadata,
+    )
 
     class MyPlugin(BasePlugin):
         async def GetMetadata(self, request, context):
@@ -18,7 +24,7 @@ Example:
             )
 
         async def GetCapabilities(self, request, context):
-            return Capabilities(flows=[Flow.FLOW_REQUEST])
+            return Capabilities(flows=[FLOW_REQUEST])
 
         async def HandleRequest(self, request, context):
             # Add custom header
@@ -27,7 +33,7 @@ Example:
             return response
 
     if __name__ == "__main__":
-        asyncio.run(serve(MyPlugin()))
+        asyncio.run(serve(MyPlugin(), sys.argv))
     ```
 """
 
@@ -42,9 +48,9 @@ except ImportError:
 
 __all__ = [
     "BasePlugin",
-    "serve",
-    "PluginError",
     "ConfigurationError",
+    "PluginError",
     "ServerError",
     "__version__",
+    "serve",
 ]

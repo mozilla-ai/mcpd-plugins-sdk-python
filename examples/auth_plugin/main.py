@@ -4,12 +4,13 @@ This example demonstrates how to reject requests that don't meet security requir
 """
 
 import asyncio
+import json
 import logging
 import os
 import sys
 
 from google.protobuf.empty_pb2 import Empty
-from grpc import ServicerContext
+from grpc.aio import ServicerContext
 
 from mcpd_plugins import BasePlugin, serve
 from mcpd_plugins.v1.plugins.plugin_pb2 import (
@@ -23,11 +24,14 @@ from mcpd_plugins.v1.plugins.plugin_pb2 import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Authentication scheme.
+BEARER_SCHEME = "Bearer"
+
 
 class AuthPlugin(BasePlugin):
     """Plugin that validates Bearer token authentication."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the auth plugin with expected token."""
         super().__init__()
         self.expected_token = os.getenv("AUTH_TOKEN", "secret-token-123")
@@ -46,17 +50,17 @@ class AuthPlugin(BasePlugin):
 
     async def HandleRequest(self, request: HTTPRequest, context: ServicerContext) -> HTTPResponse:
         """Validate Bearer token in Authorization header."""
-        logger.info(f"Authenticating request: {request.method} {request.url}")
+        logger.info("Authenticating request: %s %s", request.method, request.url)
 
         # Check for Authorization header.
         auth_header = request.headers.get("Authorization", "")
 
-        if not auth_header.startswith("Bearer "):
+        if not auth_header.startswith(f"{BEARER_SCHEME} "):
             logger.warning("Missing or invalid Authorization header")
             return self._unauthorized_response("Missing or invalid Authorization header")
 
         # Extract and validate token.
-        token = auth_header[7:]  # Remove "Bearer " prefix
+        token = auth_header.removeprefix(f"{BEARER_SCHEME} ")
         if token != self.expected_token:
             logger.warning("Invalid token")
             return self._unauthorized_response("Invalid token")
@@ -69,11 +73,13 @@ class AuthPlugin(BasePlugin):
         """Create a 401 Unauthorized response."""
         response = HTTPResponse(
             status_code=401,
-            body=f'{{"error": "{message}"}}'.encode(),
+            body=json.dumps({"error": message}).encode(),
             **{"continue": False},
         )
         response.headers["Content-Type"] = "application/json"
-        response.headers["WWW-Authenticate"] = "Bearer"
+        response.headers["WWW-Authenticate"] = (
+            f'{BEARER_SCHEME} realm="mcpd", error="invalid_token", error_description="{message}"'
+        )
         return response
 
 

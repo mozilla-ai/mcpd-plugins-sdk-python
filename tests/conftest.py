@@ -7,21 +7,60 @@ from grpc.aio import Metadata
 from mcpd_plugins.v1.plugins.plugin_pb2 import HTTPRequest, PluginConfig
 
 
+class AbortedError(Exception):
+    """Exception raised when gRPC context abort is called."""
+
+    def __init__(self, code, details: str) -> None:
+        """Initialize with gRPC status code and details.
+
+        Args:
+            code: gRPC status code.
+            details: Error details message.
+        """
+        self.code = code
+        self.details = details
+        super().__init__(f"Aborted with code {code}: {details}")
+
+
 class MockContext:
     """Mock gRPC ServicerContext for testing."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize mock context."""
         self.invocation_metadata = Metadata()
         self.peer_identity = None
         self.code = None
         self.details = None
 
-    def abort(self, code, details):
-        """Mock abort method."""
+    def set_code(self, code) -> None:
+        """Set the gRPC status code.
+
+        Args:
+            code: gRPC status code.
+        """
+        self.code = code
+
+    def set_details(self, details: str) -> None:
+        """Set the error details.
+
+        Args:
+            details: Error details message.
+        """
+        self.details = details
+
+    def abort(self, code, details: str):
+        """Mock abort method.
+
+        Args:
+            code: gRPC status code.
+            details: Error details message.
+
+        Raises:
+            AbortedError: Always raised to simulate gRPC abort.
+        """
         self.code = code
         self.details = details
-        raise Exception(f"Aborted with code {code}: {details}")
+        raise AbortedError(code, details)
 
 
 @pytest.fixture

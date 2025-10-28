@@ -10,7 +10,7 @@ import time
 from collections import defaultdict
 
 from google.protobuf.empty_pb2 import Empty
-from grpc import ServicerContext
+from grpc.aio import ServicerContext
 
 from mcpd_plugins import BasePlugin, serve
 from mcpd_plugins.v1.plugins.plugin_pb2 import (
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 class RateLimitPlugin(BasePlugin):
     """Plugin that implements rate limiting using token bucket algorithm."""
 
-    def __init__(self, requests_per_minute: int = 60):
+    def __init__(self, requests_per_minute: int = 60) -> None:
         """Initialize the rate limiter.
 
         Args:
@@ -41,6 +41,7 @@ class RateLimitPlugin(BasePlugin):
         # Track tokens for each client IP.
         self.buckets: dict[str, float] = defaultdict(lambda: float(requests_per_minute))
         self.last_update: dict[str, float] = defaultdict(time.time)
+        self.locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 
     async def GetMetadata(self, request: Empty, context: ServicerContext) -> Metadata:
         """Return plugin metadata."""
@@ -57,33 +58,34 @@ class RateLimitPlugin(BasePlugin):
     async def HandleRequest(self, request: HTTPRequest, context: ServicerContext) -> HTTPResponse:
         """Apply rate limiting based on client IP."""
         client_ip = request.remote_addr or "unknown"
-        logger.info(f"Rate limit check for {client_ip}: {request.method} {request.url}")
+        logger.info("Rate limit check for %s: %s %s", client_ip, request.method, request.url)
 
-        # Refill tokens based on time elapsed.
-        now = time.time()
-        elapsed = now - self.last_update[client_ip]
-        self.buckets[client_ip] = min(
-            self.requests_per_minute,
-            self.buckets[client_ip] + elapsed * self.rate_per_second,
-        )
-        self.last_update[client_ip] = now
+        async with self.locks[client_ip]:
+            # Refill tokens based on time elapsed.
+            now = time.time()
+            elapsed = now - self.last_update[client_ip]
+            self.buckets[client_ip] = min(
+                self.requests_per_minute,
+                self.buckets[client_ip] + elapsed * self.rate_per_second,
+            )
+            self.last_update[client_ip] = now
 
-        # Check if client has tokens available.
-        if self.buckets[client_ip] < 1.0:
-            logger.warning(f"Rate limit exceeded for {client_ip}")
-            return self._rate_limit_response(client_ip)
+            # Check if client has tokens available.
+            if self.buckets[client_ip] < 1.0:
+                logger.warning("Rate limit exceeded for %s", client_ip)
+                return self._rate_limit_response(client_ip)
 
-        # Consume one token.
-        self.buckets[client_ip] -= 1.0
-        logger.info(f"Request allowed for {client_ip} (tokens remaining: {self.buckets[client_ip]:.2f})")
+            # Consume one token.
+            self.buckets[client_ip] -= 1.0
+            logger.info("Request allowed for %s (tokens remaining: %.2f)", client_ip, self.buckets[client_ip])
 
-        # Add rate limit headers to response.
-        response = HTTPResponse(**{"continue": True})
-        response.modified_request.CopyFrom(request)
-        response.headers["X-RateLimit-Limit"] = str(self.requests_per_minute)
-        response.headers["X-RateLimit-Remaining"] = str(int(self.buckets[client_ip]))
+            # Add rate limit headers to response.
+            response = HTTPResponse(**{"continue": True})
+            response.modified_request.CopyFrom(request)
+            response.headers["X-RateLimit-Limit"] = str(self.requests_per_minute)
+            response.headers["X-RateLimit-Remaining"] = str(int(self.buckets[client_ip]))
 
-        return response
+            return response
 
     def _rate_limit_response(self, client_ip: str) -> HTTPResponse:
         """Create a 429 Too Many Requests response."""

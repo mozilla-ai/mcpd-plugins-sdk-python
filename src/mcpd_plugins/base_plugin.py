@@ -1,7 +1,7 @@
 """BasePlugin class providing default implementations for all plugin methods."""
 
 from google.protobuf.empty_pb2 import Empty
-from grpc import ServicerContext
+from grpc.aio import ServicerContext
 
 from mcpd_plugins.v1.plugins.plugin_pb2 import (
     Capabilities,
@@ -49,6 +49,7 @@ class BasePlugin(PluginServicer):
         Returns:
             Empty message indicating successful configuration.
         """
+        _ = (request, context)  # Required by gRPC interface.
         return Empty()
 
     async def Stop(self, request: Empty, context: ServicerContext) -> Empty:
@@ -63,6 +64,7 @@ class BasePlugin(PluginServicer):
         Returns:
             Empty message indicating successful shutdown.
         """
+        _ = (request, context)  # Required by gRPC interface.
         return Empty()
 
     async def GetMetadata(self, request: Empty, context: ServicerContext) -> Metadata:
@@ -77,6 +79,7 @@ class BasePlugin(PluginServicer):
         Returns:
             Metadata containing plugin information.
         """
+        _ = (request, context)  # Required by gRPC interface.
         return Metadata(
             name="base-plugin",
             version="0.0.0",
@@ -95,6 +98,7 @@ class BasePlugin(PluginServicer):
         Returns:
             Capabilities message listing supported flows.
         """
+        _ = (request, context)  # Required by gRPC interface.
         return Capabilities()
 
     async def CheckHealth(self, request: Empty, context: ServicerContext) -> Empty:
@@ -109,6 +113,7 @@ class BasePlugin(PluginServicer):
         Returns:
             Empty message indicating healthy status.
         """
+        _ = (request, context)  # Required by gRPC interface.
         return Empty()
 
     async def CheckReady(self, request: Empty, context: ServicerContext) -> Empty:
@@ -123,6 +128,7 @@ class BasePlugin(PluginServicer):
         Returns:
             Empty message indicating ready status.
         """
+        _ = (request, context)  # Required by gRPC interface.
         return Empty()
 
     async def HandleRequest(self, request: HTTPRequest, context: ServicerContext) -> HTTPResponse:
@@ -137,18 +143,25 @@ class BasePlugin(PluginServicer):
         Returns:
             HTTPResponse indicating how to proceed (continue, modify, or reject).
         """
+        _ = context  # Required by gRPC interface.
         return HTTPResponse(**{"continue": True})
 
-    async def HandleResponse(self, request: HTTPResponse, context: ServicerContext) -> HTTPResponse:
+    async def HandleResponse(self, response: HTTPResponse, context: ServicerContext) -> HTTPResponse:
         """Handle outgoing HTTP response.
 
         Default implementation passes through unchanged (continue=True).
 
+        Note:
+            The parameter is named 'response' for clarity, even though the generated
+            gRPC stub names it 'request' (gRPC convention). This semantic naming
+            improves code readability.
+
         Args:
-            request: The outgoing HTTP response to process.
+            response: The outgoing HTTP response to process.
             context: gRPC context for the request.
 
         Returns:
             HTTPResponse indicating how to proceed (continue or modify).
         """
+        _ = context  # Required by gRPC interface.
         return HTTPResponse(**{"continue": True})

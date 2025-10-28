@@ -11,20 +11,6 @@ examples_dir = Path(__file__).parent.parent.parent / "examples"
 sys.path.insert(0, str(examples_dir))
 
 
-@pytest.fixture
-def mock_context():
-    """Provide a mock gRPC context."""
-
-    class MockContext:
-        """Mock gRPC ServicerContext."""
-
-        def __init__(self):
-            """Initialize mock context."""
-            self.invocation_metadata = []
-
-    return MockContext()
-
-
 class TestSimplePlugin:
     """Integration tests for simple_plugin example."""
 
@@ -96,6 +82,10 @@ class TestAuthPlugin:
 
         assert getattr(response, "continue") is False
         assert response.status_code == 401
+        assert response.headers.get("Content-Type") == "application/json"
+        assert "WWW-Authenticate" in response.headers
+        assert response.headers["WWW-Authenticate"].startswith("Bearer")
+        assert b"error" in response.body
 
     @pytest.mark.asyncio
     async def test_auth_plugin_rejects_invalid_token(self, mock_context):
@@ -116,6 +106,10 @@ class TestAuthPlugin:
 
         assert getattr(response, "continue") is False
         assert response.status_code == 401
+        assert response.headers.get("Content-Type") == "application/json"
+        assert "WWW-Authenticate" in response.headers
+        assert response.headers["WWW-Authenticate"].startswith("Bearer")
+        assert b"error" in response.body
 
     @pytest.mark.asyncio
     async def test_auth_plugin_accepts_valid_token(self, mock_context):
@@ -172,4 +166,4 @@ class TestLoggingPlugin:
 
         assert getattr(response, "continue") is True
         # Check that logging occurred (test output capture).
-        assert "INCOMING REQUEST" in caplog.text or getattr(response, "continue") is True
+        assert "INCOMING REQUEST" in caplog.text

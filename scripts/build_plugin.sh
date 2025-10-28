@@ -14,7 +14,6 @@ NC='\033[0m' # No Color
 # Configuration
 USE_NUITKA=false
 DEBUG=false
-ONEFILE=true  # Always build as single-file executable.
 PLUGIN_DIR=""
 PLUGIN_NAME=""
 EXTRA_ARGS=()
@@ -141,8 +140,7 @@ if [[ "$USE_NUITKA" = true ]]; then
                 NUITKA_ARGS+=(--lto=yes)
                 ;;
             --optimize-speed)
-                NUITKA_ARGS+=(--lto=no)
-                NUITKA_ARGS+=(--remove-output)
+                NUITKA_ARGS+=(--lto=yes)
                 ;;
         esac
     done
@@ -167,17 +165,11 @@ else
         --specpath=build
     )
 
-    # Add debug/console flag
-    if [[ "$DEBUG" = true ]]; then
-        PYINSTALLER_ARGS+=(--console)
-    else
-        PYINSTALLER_ARGS+=(--console) # Plugins need console for gRPC
-    fi
+    # Plugins need console for gRPC
+    PYINSTALLER_ARGS+=(--console)
 
-    # Onefile vs onedir
-    if [[ "$ONEFILE" = true ]]; then
-        PYINSTALLER_ARGS+=(--onefile)
-    fi
+    # Always build as single-file executable
+    PYINSTALLER_ARGS+=(--onefile)
 
     # Hidden imports for grpc and asyncio
     PYINSTALLER_ARGS+=(

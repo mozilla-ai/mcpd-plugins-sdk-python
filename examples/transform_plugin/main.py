@@ -10,7 +10,7 @@ import logging
 import sys
 
 from google.protobuf.empty_pb2 import Empty
-from grpc import ServicerContext
+from grpc.aio import ServicerContext
 
 from mcpd_plugins import BasePlugin, serve
 from mcpd_plugins.v1.plugins.plugin_pb2 import (
@@ -42,7 +42,7 @@ class TransformPlugin(BasePlugin):
 
     async def HandleRequest(self, request: HTTPRequest, context: ServicerContext) -> HTTPResponse:
         """Transform JSON request bodies by adding metadata."""
-        logger.info(f"Processing request: {request.method} {request.url}")
+        logger.info("Processing request: %s %s", request.method, request.url)
 
         # Only transform POST/PUT/PATCH requests with JSON content.
         content_type = request.headers.get("Content-Type", "")
@@ -56,9 +56,14 @@ class TransformPlugin(BasePlugin):
                 logger.info("Empty body, skipping transformation")
                 return HTTPResponse(**{"continue": True})
 
+            # Extract charset from Content-Type header (default to utf-8).
+            charset = "utf-8"
+            if "charset=" in content_type:
+                charset = content_type.split("charset=")[-1].split(";")[0].strip()
+
             # Parse JSON.
-            data = json.loads(request.body.decode("utf-8"))
-            logger.info(f"Original payload: {data}")
+            data = json.loads(request.body.decode(charset))
+            logger.info("Original payload: %s", data)
 
             # Add metadata fields.
             if isinstance(data, dict):
@@ -67,7 +72,7 @@ class TransformPlugin(BasePlugin):
                     "version": "1.0.0",
                     "client_ip": request.remote_addr,
                 }
-                logger.info(f"Transformed payload: {data}")
+                logger.info("Transformed payload: %s", data)
 
                 # Create modified request.
                 modified_body = json.dumps(data).encode("utf-8")
@@ -84,17 +89,17 @@ class TransformPlugin(BasePlugin):
                 logger.warning("JSON body is not a dict, skipping transformation")
                 return HTTPResponse(**{"continue": True})
 
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON body: {e}")
-            # Return 400 Bad Request for invalid JSON.
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            logger.exception("Failed to parse request body")
+            # Return 400 Bad Request for invalid JSON or encoding.
             return HTTPResponse(
                 **{"continue": False},
                 status_code=400,
-                body=b'{"error": "Invalid JSON"}',
+                body=b'{"error": "Invalid JSON or encoding"}',
                 headers={"Content-Type": "application/json"},
             )
-        except Exception as e:
-            logger.error(f"Unexpected error during transformation: {e}")
+        except Exception:
+            logger.exception("Unexpected error during transformation")
             # Allow request to continue on unexpected errors.
             return HTTPResponse(**{"continue": True})
 
