@@ -1,5 +1,6 @@
 """Integration tests for example plugins."""
 
+import logging
 import sys
 from pathlib import Path
 
@@ -59,6 +60,7 @@ class TestSimplePlugin:
         assert getattr(response, "continue") is True
         assert "X-Simple-Plugin" in response.modified_request.headers
         assert response.modified_request.headers["X-Simple-Plugin"] == "processed"
+        assert response.modified_request.headers.get("User-Agent") == "test"
 
 
 class TestAuthPlugin:
@@ -151,6 +153,7 @@ class TestLoggingPlugin:
     @pytest.mark.asyncio
     async def test_logging_plugin_logs_request(self, mock_context, caplog):
         """Logging plugin should log request details."""
+        caplog.set_level(logging.INFO)
         from logging_plugin.main import LoggingPlugin
 
         from mcpd_plugins.v1.plugins.plugin_pb2 import HTTPRequest

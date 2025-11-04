@@ -328,10 +328,45 @@ class TestSignalHandlers:
     @pytest.mark.asyncio
     @patch("mcpd_plugins.server.aio.server")
     @patch("mcpd_plugins.server.add_PluginServicer_to_server")
+    @patch("mcpd_plugins.server.asyncio.Event")
+    @patch("mcpd_plugins.server.asyncio.get_running_loop")
+    async def test_registers_signal_handlers_via_loop(
+        self,
+        mock_get_loop,
+        mock_event_class,
+        mock_add_servicer,
+        mock_aio_server,
+        mock_plugin,
+        mock_server,
+        mock_stop_event,
+    ):
+        """Should register SIGTERM and SIGINT handlers via loop.add_signal_handler (primary path)."""
+        mock_aio_server.return_value = mock_server
+        mock_event_class.return_value = mock_stop_event
+        mock_stop_event.wait = AsyncMock()
+
+        # Mock the event loop.
+        mock_loop = MagicMock()
+        mock_loop.add_signal_handler = MagicMock()
+        mock_get_loop.return_value = mock_loop
+
+        await serve(mock_plugin)
+
+        # Verify both signal handlers were registered via loop.
+        assert mock_loop.add_signal_handler.call_count == 2
+        signal_calls = [call_args[0][0] for call_args in mock_loop.add_signal_handler.call_args_list]
+        assert signal.SIGTERM in signal_calls
+        assert signal.SIGINT in signal_calls
+
+    @pytest.mark.asyncio
+    @patch("mcpd_plugins.server.aio.server")
+    @patch("mcpd_plugins.server.add_PluginServicer_to_server")
     @patch("mcpd_plugins.server.signal.signal")
     @patch("mcpd_plugins.server.asyncio.Event")
-    async def test_registers_signal_handlers(
+    @patch("mcpd_plugins.server.asyncio.get_running_loop")
+    async def test_registers_signal_handlers_fallback(
         self,
+        mock_get_loop,
         mock_event_class,
         mock_signal,
         mock_add_servicer,
@@ -340,14 +375,19 @@ class TestSignalHandlers:
         mock_server,
         mock_stop_event,
     ):
-        """Should register SIGTERM and SIGINT handlers."""
+        """Should fall back to signal.signal when loop.add_signal_handler fails (e.g., Windows)."""
         mock_aio_server.return_value = mock_server
         mock_event_class.return_value = mock_stop_event
         mock_stop_event.wait = AsyncMock()
 
+        # Mock the event loop to raise NotImplementedError (simulates Windows or non-main thread).
+        mock_loop = MagicMock()
+        mock_loop.add_signal_handler = MagicMock(side_effect=NotImplementedError)
+        mock_get_loop.return_value = mock_loop
+
         await serve(mock_plugin)
 
-        # Verify both signal handlers were registered
+        # Verify both signal handlers were registered via signal.signal fallback.
         assert mock_signal.call_count == 2
         signal_calls = [call_args[0][0] for call_args in mock_signal.call_args_list]
         assert signal.SIGTERM in signal_calls
