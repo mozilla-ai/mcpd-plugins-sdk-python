@@ -1,0 +1,39 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+  workflow_dispatch:
+
+jobs:
+  test:
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+        python-version: [ '3.11', '3.12', '3.13' ]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup UV
+        uses: astral-sh/setup-uv@e92bafb6253dcd438e0484186d7669ea7a8ca1cc # v6.4.3
+        with:
+          python-version: ${{ matrix.python-version }}
+          activate-environment: true
+
+      - run: uv sync --group tests
+
+      - run: pytest -v tests/unit

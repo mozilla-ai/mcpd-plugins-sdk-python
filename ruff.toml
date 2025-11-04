@@ -1,0 +1,77 @@
+# Ruff configuration for mcpd-plugins-sdk-python
+
+# Follow deprecation table: https://numpy.org/neps/nep-0029-deprecation_policy.html#support-table
+target-version = "py311"
+src = ["src"]
+line-length = 120
+include = ["*.py", "*.pyi"]
+
+# Exclude common directories
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+[lint]
+# Select rules to enforce
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "I",    # isort
+    "N",    # pep8-naming
+    "ISC",  # flake8-implicit-str-concat
+    "PTH",  # flake8-use-pathlib
+    "D",    # pydocstyle
+    "G",    # flake8-logging-format
+    "ARG",  # flake8-unused-arguments
+    "ANN",  # flake8-annotations
+]
+
+# Rules to ignore
+ignore = [
+    "ARG002",  # Unused method arguments (required by gRPC interface)
+]
+
+# Never autofix these - require manual review
+unfixable = [
+    "B",    # flake8-bugbear (potential bugs)
+    "F841", # unused variables
+]
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401", "D104"]  # Allow unused imports and missing docstrings in __init__.py
+"tests/**" = ["D", "N", "ANN"]   # Skip docstrings, naming conventions, and annotations in tests
+"examples/**" = ["N802"]  # Allow PascalCase method names (protobuf convention)
+"src/mcpd_plugins/base_plugin.py" = ["N802"]  # Allow PascalCase methods (protobuf convention)
+"**/plugin_pb2*.py" = ["ALL"]  # Ignore all linting in generated proto files
+"**/_version.py" = ["ALL"]  # Ignore all linting in generated version files
+
+[lint.pydocstyle]
+convention = "google"
+
+[format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
